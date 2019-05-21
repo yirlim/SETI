@@ -1,0 +1,90 @@
+---
+title: "Smart Energy Transition Index"
+author: "Y. Lim"
+date: '2019 5 20 '
+output: html_document
+---
+
+Main hypothesis is there is statistically significant difference between smart and non-smart cities on energy transition performance.
+The study especially focus on government-led smart city initiatives since both energy sector and urban development need their attention.
+Therefore, the distinction between smart and non-smart city is made by the existance of government-led smart city initiatives. 
+There are 161 cities in South Korea. Among them 45 cities have finished smart city (construction) projects initiated by the government agencies (LH, SH, MoLIT, and local governments). 45 cities are further divided into two, 1st wave smart cities and 2nd wave smart cities. Differencitating this two involves unique history of smart city development in South Korea. In 2009 and until 2013, the government initiated U-city projects in 34 cities. These projects were mainly focused on transportation and security by implementing ICT infrastructures (sensors, networks, and CCTVs). We consider these cities as 1st wave smart city. It utilized ICT in urban management, but the scope was limited. As smart city concept evolves, the government expended U-city into smart city, which is more comprehensive urban management method. We call them 2nd wave smart city. U-city provided urban services mainly in transportation information and security, but smart city provides services in administration, health and welfare, environment, and facility management. The 2md wave smart city projects that are finished by 2016 is 11 cities. The rest (116) cities have not been designated by the government as u-city or smart city. 
+
+Smart Energy Transition Index (SETI)
+
+SETI is developed to measure each city's energy transition performance with special focus on smart city features. First we reviewed smart city literature and energy transition literature to establish tentative framework that shows smart city's contribution on energy transition. Based on the framework, we developed SETI with seven indicators. The indicators are:
+1) Renewable Energy Production measured by Ratio of Renewable Energy Employment (Solar and Hydro)
+2) Smart Grid measured by No. of Energy Storage System Projects
+3) Civil Initiatives measured by No. of Civil Initiatives in Renewable Energy Sector
+4) Energy Conservation Behavior measured by Average of Environment Conservation Behaviors
+5) Total Energy Consumption measured by Total Amount of Electricity use in Houses, Service Sector, and Public Sector
+6) Financial Support from the Governments measured by Percentage of Budget for Scientific Development (Technology)
+7) Rules and Regulation on Energy measured by the No. of Local Governments' Regulations, Laws, or Legislation on Energy
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+install.packages("xlsx", repos = "http://cran.us.r-project.org")
+library(xlsx)
+read.csv("https://github.com/yirlim/SETI/blob/master/Dataset_20190520.csv")
+head(Dataset_20190520)
+D <- Dataset_20190520
+```
+
+
+```{r}
+ggplot(D, aes(x = RE_E, y = SG)) + geom_point()
+```
+
+```{r}
+ggplot(D, aes(x = RE_E, y = CI)) + geom_point()
+```
+
+```{r}
+ggplot(D, aes(x = SG, y = RE_E)) + geom_point() + facet_grid(cols = vars(D$Smart_City))
+```
+
+```{r}
+install.packages("Hmisc")
+library(Hmisc)
+D1 <- D %>% select(RE_E, SG, CI, ES_Ave, Elec_HPS, TB, ER)
+head(D1)
+D1 <- mutate(D1, SG = as.double(SG), CI = as.double(CI), ES_Ave = as.double(ES_Ave), Elec_HPS = as.double(Elec_HPS))
+head(D1)
+rcorr(as.matrix(D1))
+install.packages("PerformanceAnalytics")
+library(PerformanceAnalytics)
+chart.Correlation(D1, historgram = TRUE, pch = 19)
+```
+
+
+After running correlation test among the indicators, Smart Grid has correlation with Community Initiatives, Technolgoy Budget, and Energy Regulations. Energy Regulation also has correlation with Community Initiatives and Technology Budget. The correlation among indicators shows the indicators are measuring similar feature of energy transition. 
+
+We move on to normalizing the indicators and to accumulate into one index. 
+
+```{r}
+qqnorm(D$RE_E)
+qqnorm(D$SG)
+qqnorm(D$CI)
+qqnorm(D$ES_Ave)
+qqnorm(D$Elec_HPS)
+qqnorm(D$TB)
+qqnorm(D$ER)
+shapiro.test(D$RE_E)
+library(caret)
+```
+
+```{r}
+normalize <- function(x)
+{
+    return((x- min(x)) /(max(x)-min(x)))
+}
+library(dplyr)
+D2 <- mutate(normalize(D1))
+
+SETI <- (D2$RE_E + D2$SG)*0.5*(1/3) + (D2$CI + D2$ES_Ave + D2$Elec_HPS)*(1/3)^2 + (D2$TB + D2$ER)*0.5*(1/3)
+qqnorm(SETI)
+log_SETI <- log(SETI)
+qqnorm(log_SETI)
+```
+
